@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Work Time Tracker",
+  "version": "1.0",
+  "description": "Tracks employee work time and sends it to backend.",
+  "permissions": ["storage", "notifications", "idle"],
+  "host_permissions": ["http://localhost:8080/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Work Time Tracker"
+  }
+}
