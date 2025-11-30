@@ -1,7 +1,7 @@
 // background.js - auto logout after 15 minutes idle AND send session to backend
 
 const IDLE_LIMIT_MINUTES = 1; // change to 15 in real usage
-const API_BASE_URL = "http://10.0.0.152:8080/api/time-entries";  // use your real IP
+const API_BASE_URL = "https://timetracker-backend-fyqb.onrender.com/api/time-entries";  // use your real IP
 
 
 chrome.idle.setDetectionInterval(IDLE_LIMIT_MINUTES * 60);

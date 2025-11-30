@@ -2,7 +2,7 @@
 const DAILY_TARGET_MS = 8 * 60 * 60 * 1000;
 
 // Backend URL (your Spring Boot)
-const API_BASE_URL = "http://10.0.0.152:8080/api/time-entries";
+const API_BASE_URL = "https://timetracker-backend-fyqb.onrender.com/api/time-entries";
 
 function getTodayKey() {
   const d = new Date();
