@@ -4,20 +4,20 @@ const DAILY_TARGET_MS = 8 * 60 * 60 * 1000;
 // Backend URL (your Spring Boot)
 const API_BASE_URL = "https://timetracker-backend-fyqb.onrender.com/api/time-entries";
 
-function getTodayKey() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+// NEW: detect this machine's IANA time zone (Asia/Kolkata, America/Chicago, etc.)
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
-// NEW: use LOCAL date (not UTC) for workDate
+// Helper: LOCAL date -> yyyy-MM-dd
 function getLocalDateString(d) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`; // e.g. 2025-11-28
+}
+
+// Today key for local day
+function getTodayKey() {
+  return getLocalDateString(new Date());   // 👈 reuse local-date helper
 }
 
 function formatDuration(ms) {
@@ -163,11 +163,14 @@ function sendSessionToServer(employeeId, startMs, endMs, durationMs) {
 
   const payload = {
     employeeId: employeeId,
-    // CHANGED: use local date instead of UTC slice
+    // LOCAL calendar date
     workDate: getLocalDateString(startDate),
+    // UTC instants
     startTime: startDate.toISOString(),
     endTime: endDate.toISOString(),
-    durationMs: durationMs
+    durationMs: durationMs,
+    // NEW: timezone id (optional but useful)
+    timeZone: TIME_ZONE
   };
 
   fetch(API_BASE_URL, {
@@ -176,12 +179,13 @@ function sendSessionToServer(employeeId, startMs, endMs, durationMs) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
-  }).then((res) => {
-    if (!res.ok) {
-      console.error("Failed to send time entry", res.status);
-    }
-  }).catch((err) => {
-    console.error("Error sending time entry", err);
-  });
+  })
+    .then((res) => {
+      if (!res.ok) {
+        console.error("Failed to send time entry", res.status);
+      }
+    })
+    .catch((err) => {
+      console.error("Error sending time entry", err);
+    });
 }
-

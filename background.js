@@ -1,12 +1,14 @@
 // background.js - auto logout after 15 minutes idle AND send session to backend
 
 const IDLE_LIMIT_MINUTES = 1; // change to 15 in real usage
-const API_BASE_URL = "https://timetracker-backend-fyqb.onrender.com/api/time-entries";  // use your real IP
+const API_BASE_URL = "https://timetracker-backend-fyqb.onrender.com/api/time-entries";
 
+// Machine's IANA time zone (Asia/Kolkata, America/Chicago, etc.)
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 chrome.idle.setDetectionInterval(IDLE_LIMIT_MINUTES * 60);
 
-// NEW: helper to get LOCAL date (not UTC)
+// Helper: LOCAL date -> yyyy-MM-dd
 function getLocalDateString(d) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -14,12 +16,9 @@ function getLocalDateString(d) {
   return `${year}-${month}-${day}`; // e.g. 2025-11-28
 }
 
+// Today key using local date
 function getTodayKey() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getLocalDateString(new Date());
 }
 
 chrome.idle.onStateChanged.addListener((state) => {
@@ -45,20 +44,23 @@ chrome.idle.onStateChanged.addListener((state) => {
         const previous = sessions[today] || 0;
         sessions[today] = previous + duration;
 
-        chrome.storage.local.set({
-          status: "out",
-          currentSessionStart: null,
-          sessions
-        }, () => {
-          sendSessionToServerAuto(employeeId, start, now, duration);
+        chrome.storage.local.set(
+          {
+            status: "out",
+            currentSessionStart: null,
+            sessions
+          },
+          () => {
+            sendSessionToServerAuto(employeeId, start, now, duration);
 
-          chrome.notifications.create({
-            type: "basic",
-            iconUrl: "icon.png",
-            title: "You were logged out",
-            message: "You were inactive for 15 minutes. Please Clock In again."
-          });
-        });
+            chrome.notifications.create({
+              type: "basic",
+              iconUrl: "icon.png",
+              title: "You were logged out",
+              message: "You were inactive for 15 minutes. Please Clock In again."
+            });
+          }
+        );
       }
     );
   }
@@ -70,11 +72,14 @@ function sendSessionToServerAuto(employeeId, startMs, endMs, durationMs) {
 
   const payload = {
     employeeId: employeeId,
-    // CHANGED: use local date instead of UTC slice
+    // LOCAL calendar date
     workDate: getLocalDateString(startDate),
-    startTime: startDate.toISOString(),  // still fine as UTC
+    // UTC instants
+    startTime: startDate.toISOString(),
     endTime: endDate.toISOString(),
-    durationMs: durationMs
+    durationMs: durationMs,
+    // Same timezone field as popup.js
+    timeZone: TIME_ZONE
   };
 
   fetch(API_BASE_URL, {
